@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AETHER — Interstellar Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@300;400;700;800&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  /* --- STYLES FROM YOUR FILE (THE AESTHETIC) --- */
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --void:#04040F;--deep:#080820;--surface:#0D0D2B;
+    --glass:rgba(255,255,255,0.03);--rim:rgba(255,255,255,0.07);
+    --text:#E8E4F0;--mute:#6A6888;
+    --cyan:#00F5FF;--magenta:#FF2D78;--violet:#8B5CF6;--gold:#FFB547;
+  }
+  html{scroll-behavior:smooth}
+  body{background:var(--void);color:var(--text);font-family:'Syne',sans-serif;font-weight:300;overflow-x:hidden;cursor:none}
+  #cursor{position:fixed;width:10px;height:10px;background:var(--cyan);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:screen}
+  #cursor-ring{position:fixed;width:36px;height:36px;border:1px solid rgba(0,245,255,0.4);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%)}
+  #starfield{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:28px 60px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(12px);border-bottom:1px;border-color:var(--rim);background:rgba(4,4,15,0.6)}
+  .nav-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:6px;background:linear-gradient(135deg,var(--cyan),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .nav-links{display:flex;gap:40px;list-style:none}
+  .nav-links a{color:var(--mute);text-decoration:none;font-size:12px;letter-spacing:3px;text-transform:uppercase;transition:color .3s}
+  .nav-links a:hover{color:var(--cyan)}
+
+  /* --- HERO & EARTH ENGINE CONTAINER --- */
+  #hero{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;padding:100px 20px 60px}
+  
+  /* This container holds the 3D Earth behind the text */
+  #earth-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+  }
+  canvas#earth-canvas { width: 100%; height: 100%; display: block; }
+
+  .hero-eyebrow{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:6px;color:var(--cyan);text-transform:uppercase;margin-bottom:24px;opacity:0;animation:fadeUp 1s .3s ease forwards}
+  .hero-sub{margin-top:32px;font-size:15px;font-weight:300;color:var(--mute);letter-spacing:1px;text-align:center;max-width:480px;opacity:0;animation:fadeUp 1s 1s ease forwards}
+  .hero-cta{display:inline-flex;align-items:center;gap:12px;margin-top:24px;padding:14px 36px;border:1px solid rgba(0,245,255,0.3);color:var(--cyan);text-decoration:none;font-size:11px;letter-spacing:4px;text-transform:uppercase;transition:all .4s;position:relative;overflow:hidden;opacity:0;animation:fadeUp 1s 1.2s ease forwards}
+  .hero-cta:hover{border-color:var(--cyan);box-shadow:0 0 30px rgba(0,245,255,0.2)}
+
+  .scroll-hint{margin-top:36px;display:flex;flex-direction:column;align-items:center;gap:10px;opacity:0;animation:fadeUp 1s 1.5s ease forwards}
+  .sh-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:5px;color:var(--mute);text-transform:uppercase}
+  .sh-arrows span{display:block;width:10px;height:10px;border-right:1px solid rgba(106,104,136,0.6);border-bottom:1px solid rgba(106,104,136,0.6);transform:rotate(45deg);margin:2px auto;animation:arrowB 1.4s ease-in-out infinite}
+
+  /* --- SECTIONS (Content Layouts) --- */
+  section{position:relative;z-index:1;padding:140px 60px}
+  .section-tag{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:5px;text-transform:uppercase;color:var(--cyan);margin-bottom:20px}
+  .section-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(48px,6vw,90px);line-height:1;letter-spacing:1px}
+
+  #about{display:grid;grid-template-columns:1fr 1fr;gap:100px;align-items:center;border-top:1px solid var(--rim)}
+  .about-visual{position:relative;height:500px;perspective:800px}
+  .panel-3d{position:absolute;padding:32px;background:var(--glass);border:1px solid var(--rim);backdrop-filter:blur(8px)}
+  .panel-main{width:300px;height:340px;top:50%;left:50%;transform:translate(-50%,-50%) rotateY(-8deg) rotateX(4deg)}
+  .panel-back{width:260px;height:300px;top:calc(50% + 30px);left:calc(50% + 30px);transform:translate(-50%,-50%) rotateY(-12deg) rotateX(6deg);border-color:rgba(0,245,255,0.15);z-index:-1}
+  .panel-accent{width:120px;height:120px;bottom:80px;left:20px;transform:rotateY(10deg) rotateX(-5deg);border-color:rgba(255,45,120,0.4);background:rgba(255,45,120,0.05);display:flex;align-items:center;justify-content:center}
+  .panel-num{font-family:'Bebas Neue',sans-serif;font-size:72px;color:var(--cyan);line-height:1}
+  .panel-unit{font-size:11px;letter-spacing:3px;color:var(--mute);text-transform:uppercase;margin-top:8px}
+  .panel-divider{width:40px;height:1px;background:var(--rim);margin:20px 0}
+  .panel-desc{font-size:13px;color:var(--mute);line-height:1.8}
+  .panel-stat{font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--magenta)}
+  .panel-stat-label{font-size:10px;letter-spacing:3px;color:var(--mute);text-transform:uppercase}
+  .about-body{font-size:17px;font-weight:300;line-height:1.9;color:rgba(232,228,240,0.7);margin-top:40px}
+  .about-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:56px}
+  .stat-box{padding:24px;border:1px solid var(--rim);position:relative;transition:all .3s}
+  .stat-val{font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--text)}
+  .stat-lbl{font-size:10px;letter-spacing:3px;color:var(--mute);text-transform:uppercase;margin-top:4px}
+
+  #services{border-top:1px solid var(--rim);background:linear-gradient(180deg,transparent,rgba(139,92,246,0.03) 50%,transparent)}
+  .services-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+  .service-card{perspective:900px;background:none!important;border:none!important;padding:0!important}
+  .card-inner{width:100%;height:280px;position:relative;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.4,.2,.2,1);cursor:pointer}
+  .service-card:hover .card-inner{transform:rotateY(180deg)}
+  .card-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border:1px solid var(--rim);background:var(--glass);padding:36px 32px;display:flex;flex-direction:column;overflow:hidden}
+  .card-back{transform:rotateY(180deg);background:var(--surface);border-color:rgba(0,245,255,0.15);align-items:center;justify-content:center;text-align:center;gap:16px}
+  .card-back-link{display:inline-block;margin-top:12px;padding:8px 24px;border:1px solid rgba(0,245,255,0.3);color:var(--cyan);font-size:10px;letter-spacing:3px;text-transform:uppercase;text-decoration:none}
+  .card-num{font-family:'DM Mono',monospace;font-size:11px;color:var(--mute);margin-bottom:40px}
+  .card-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:16px}
+  .card-body{font-size:14px;color:var(--mute);line-height:1.8}
+  .card-arrow{position:absolute;bottom:32px;right:32px;font-size:20px;color:var(--mute)}
+
+  #projects{border-top:1px solid var(--rim)}
+  .project-row{display:grid;grid-template-columns:80px 1fr 200px 120px;align-items:center;gap:40px;padding:28px 0;border-bottom:1px solid var(--rim);cursor:pointer;opacity:0;transform:rotateX(-20deg) translateY(20px);transition:all .5s}
+  .project-row.visible{opacity:1;transform:rotateX(0) translateY(0)}
+  .proj-num{font-family:'DM Mono',monospace;font-size:12px;color:var(--mute)}
+  .proj-name{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:1px}
+  .proj-type{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--mute)}
+  .proj-year{font-family:'DM Mono',monospace;font-size:12px;color:var(--mute);text-align:right}
+
+  #process{border-top:1px solid var(--rim);background:linear-gradient(180deg,transparent,rgba(0,245,255,0.02) 50%,transparent)}
+  .process-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:80px}
+  .step{padding:0 24px;text-align:center;opacity:0;transition:all .6s}
+  .step.visible{opacity:1;transform:translateY(0)}
+  .step-dot{width:56px;height:56px;border-radius:50%;border:1px solid var(--rim);display:flex;align-items:center;justify-content:center;margin:0 auto 32px;font-family:'DM Mono',monospace;font-size:12px;color:var(--mute);background:var(--void)}
+  .step-title{font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:12px}
+  .step-body{font-size:13px;color:var(--mute);line-height:1.8}
+
+  #contact{border-top:1px solid var(--rim);text-align:center;min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .contact-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(60px,10vw,140px);line-height:1;background:linear-gradient(135deg,var(--text) 0%,var(--violet) 50%,var(--cyan) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:32px}
+  .contact-email{font-family:'DM Mono',monospace;font-size:clamp(14px,2vw,22px);color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(0,245,255,0.3);padding-bottom:4px}
+
+  footer{padding:32px 60px;border-top:1px solid var(--rim);display:flex;justify-content:space-between;align-items:center}
+  .footer-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:6px;color:var(--mute)}
+  .footer-links{display:flex;gap:32px}
+  .footer-links a{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--mute);text-decoration:none}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes arrowB{0%,100%{opacity:.2;transform:rotate(45deg) translateY(0)}50%{opacity:.8;transform:rotate(45deg) translateY(4px)}}
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- 3D EARTH LAYER -->
+<div id="earth-container">
+    <canvas id="earth-canvas"></canvas>
+</div>
+
+<nav>
+  <div class="nav-logo">AETHER</div>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#services">Services</a></li>
+    <li><a href="#projects">Projects</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<section id="hero">
+  <p class="hero-eyebrow">Est. 2041 — Sector 7, Low Earth Orbit</p>
+  <p class="hero-sub">Spatial design for the next epoch. Architecture without atmosphere. Structures that redefine what it means to inhabit space.</p>
+  <a href="#projects" class="hero-cta"><span>Explore Our Work</span><span style="margin-left:8px">→</span></a>
+
+  <div class="scroll-hint">
+    <span class="sh-label">Scroll to rotate Earth</span>
+    <div class="sh-arrows"><span></span><span></span><span></span></div>
+  </div>
+</section>
+
+<section id="about">
+  <div class="about-visual">
+    <div class="panel-3d panel-back"></div>
+    <div class="panel-3d panel-main reveal">
+      <div class="panel-num">340+</div>
+      <div class="panel-unit">Projects completed</div>
+      <div class="panel-divider"></div>
+      <div class="panel-desc">From lunar habitat clusters to orbital observation rings — each structure emerges from deep systems thinking and zero-gravity material science.</div>
+    </div>
+    <div class="panel-3d panel-accent reveal">
+      <div><div class="panel-stat">7×</div><div class="panel-stat-label">Gravity<br>Independence</div></div>
+    </div>
+  </div>
+  <div>
+    <p class="section-tag reveal">// About the studio</p>
+    <h2 class="section-title reveal">Designing<br>New Worlds</h2>
+    <p class="about-body reveal">We are AETHER — a collective of architects, material scientists, and spatial theorists operating at the edge of human habitation. Our structures exist where conventional design thinking simply doesn't apply.</p>
+    <p class="about-body reveal" style="margin-top:20px">Every project begins with a single question: what does it mean to belong in a space that was never meant for you?</p>
+    <div class="about-stats">
+      <div class="stat-box reveal"><div class="stat-val">28</div><div class="stat-lbl">Years of operation</div></div>
+      <div class="stat-box reveal"><div class="stat-val">6</div><div class="stat-lbl">Planetary bodies</div></div>
+      <div class="stat-box reveal"><div class="stat-val">∞</div><div class="stat-lbl">Possible futures</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="services">
+  <p class="section-tag reveal">// What we do</p>
+  <h2 class="section-title reveal">Our<br>Disciplines</h2>
+  <div class="services-grid" style="margin-top:60px">
+    <div class="service-card reveal"><div class="card-inner"><div class="card-face"><div class="card-num">01</div><h3 class="card-title">Orbital Architecture</h3><p class="card-body">Habitation rings, observation modules, and long-duration transit vessels for the permanent off-world population.</p><div class="card-arrow">↗</div></div><div class="card-face card-back"><p>86 orbital structures across 4 space agencies. Zero structural failures.</p><a class="card-back-link" href="#">View Projects</a></div></div></div>
+    <div class="service-card reveal"><div class="card-inner"><div class="card-face"><div class="card-num">02</div><h3 class="card-title">Lunar Infrastructure</h3><p class="card-body">Subsurface colony design, regolith-based construction, and surface transit corridors for the Moon's settlements.</p><div class="card-arrow">↗</div></div><div class="card-face card-back"><p>Mare Imbrium Colony houses 2,400 permanent residents.</p><a class="card-back-link" href="#">Case Study</a></div></div></div>
+    <div class="service-card reveal"><div class="card-inner"><div class="card-face"><div class="card-num">03</div><h3 class="card-title">Martian Habitats</h3><p class="card-body">Pressurized greenhouse ecosystems, dust-storm resilient shells, and terraforming-compatible modular expansion.</p><div class="card-arrow">↗</div></div><div class="card-face card-back"><p>Our Olympus modules withstand 200 km/h dust storms.</p><a class="card-back-link" href="#">Learn More</a></div></div></div>
+    <div class="service-card reveal"><div class="card-inner"><div class="card-face"><div class="card-num">04</div><h3 class="card-title">Deep Space Nodes</h3><p class="card-body">Waypoint stations and interplanetary relay outposts for autonomous operation across multi-year missions.</p><div class="card-arrow">↗</div></div><div class="card-face card-back"><p>Ceres Gateway handles 40 transit vessels monthly.</p><a class="card-back-link" href="#">View Projects</a></div></div></div>
+    <div class="service-card reveal"><div class="card-inner"><div class="card-face"><div class="card-num">05</div><h3 class="card-title">Material Research</h3><p class="card-body">Next-generation aerogels, self-healing polymers, and in-situ resource utilization for construction beyond Earth.</p><div class="card-arrow">↗</div></div><div class="card-face card-back"><p>14 patents filed. Our ISRU framework reduces launch mass by 73%.</p><a class="card-back-link" href="#">Research</a></div></div></div>
+    <div class="service-card reveal"><div class="card-inner"><div class="card-face"><div class="card-num">06</div><h3 class="card-title">Atmospheric Design</h3><p class="card-body">Interior experience architecture: light, sound, biophilic patterns, and circadian rhythm systems.</p><div class="card-arrow">↗</div></div><div class="card-face card-back"><p>Crew wellness scores 40% higher in AETHER-designed interiors.</p><a class="card-back-link" href="#">Research</a></div></div></div>
+  </div>
+</section>
+
+<section id="projects">
+  <p class="section-tag reveal">// Selected work</p>
+  <h2 class="section-title reveal">Recent<br>Missions</h2>
+  <div style="margin-top:80px">
+    <div class="project-row reveal"><span class="proj-num">001</span><span class="proj-name">Helix Station Alpha</span><span class="proj-type">Low Earth Orbit • Habitation</span><span class="proj-year">2043</span></div>
+    <div class="project-row reveal"><span class="proj-num">002</span><span class="proj-name">Mare Imbrium Colony</span><span class="proj-type">Lunar Surface • Infrastructure</span><span class="proj-year">2042</span></div>
+    <div class="project-row reveal"><span class="proj-num">003</span><span class="proj-name">Olympus Research Node</span><span class="proj-type">Mars Orbit • Research</span><span class="proj-year">2041</span></div>
+    <div class="project-row reveal"><span class="proj-num">004</span><span class="proj-name">Ceres Gateway Port</span><span class="proj-type">Asteroid Belt • Transit</span><span class="proj-year">2040</span></div>
+    <div class="project-row reveal"><span class="proj-num">005</span><span class="proj-name">Titan Subsurface Lab</span><span class="proj-type">Saturn Moon • Research</span><span class="proj-year">2039</span></div>
+  </div>
+</section>
+
+<section id="process">
+  <p class="section-tag reveal">// How we work</p>
+  <h2 class="section-title reveal">The Process</h2>
+  <div class="process-steps">
+    <div class="step reveal"><div class="step-dot">01</div><h4 class="step-title">Discovery</h4><p class="step-body">Environmental analysis, gravity mapping, and radiation flux research.</p></div>
+    <div class="step reveal"><div class="step-dot">02</div><h4 class="step-title">Systems Design</h4><p class="step-body">Computational modeling of structural loads and habitability.</p></div>
+    <div class="step reveal"><div class="step-dot">03</div><h4 class="step-title">Engineering</h4><p class="step-body">Construction materials compatible with extreme environments.</p></div>
+    <div class="step reveal"><div class="step-dot">04</div><h4 class="step-title">Deployment</h4><p class="step-body">Robotic pre-construction and live structural validation.</p></div>
+  </div>
+</section>
+
+<section id="contact">
+  <p class="section-tag reveal">// Ready to launch?</p>
+  <h2 class="contact-title reveal">Let's Build<br>Something<br>Impossible</h2>
+  <p class="contact-sub reveal">We're taking briefs for missions beyond 2045.</p>
+  <a href="mailto:hello@aether.space" class="contact-email reveal">hello@aether.space</a>
+</section>
+
+<footer>
+  <div class="footer-logo">AETHER</div>
+  <div class="footer-copy">© 2043 Aether Studio — Registered in Low Earth Orbit</div>
+  <div class="footer-links"><a href="#">Instagram</a><a href="#">LinkedIn</a><a href="#">ArXiv</a></div>
+</footer>
+
+<script>
+/* --- CURSOR LOGIC --- */
+const cur=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY});
+(function ac(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;cur.style.left=mx+'px';cur.style.top=my+'px';ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(ac)})();
+
+/* --- STARFIELD --- */
+const sf=document.getElementById('starfield'),sx=sf.getContext('2d');
+let stars=[];
+function rsz(){sf.width=innerWidth;sf.height=innerHeight}rsz();addEventListener('resize',rsz);
+for(let i=0;i<300;i++)stars.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*1.4,a:Math.random(),da:(Math.random()-.5)*.005,c:['#fff','#00F5FF','#8B5CF6','#FFB547'][0|Math.random()*4]});
+(function ds(){sx.clearRect(0,0,sf.width,sf.height);const sy=scrollY*.15;stars.forEach(s=>{s.a+=s.da;if(s.a<0||s.a>1)s.da*=-1;sx.beginPath();sx.arc(s.x,(s.y-sy)%sf.height,s.r,0,Math.PI*2);sx.fillStyle=s.c;sx.globalAlpha=s.a*.8;sx.fill();sx.globalAlpha=1});requestAnimationFrame(ds)})();
+
+/* --- REALISTIC EARTH ENGINE --- */
+(function(){
+  const canvas = document.getElementById('earth-canvas');
+  const renderer=new THREE.WebGLRenderer({canvas:canvas,alpha:true,antialias:true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
+  camera.position.z=3;
+
+  const loader = new THREE.TextureLoader();
+  // High quality textures
+  const earthTex = loader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
+  const bumpMap = loader.load('https://unpkg.com/three-globe/example/img/earth-topology.png');
+  const specMap = loader.load('https://unpkg.com/three-globe/example/img/earth-waterbodies.png');
+  const cloudTex = loader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_2048.png');
+
+  const earthGeo=new THREE.SphereGeometry(1,64,64);
+  const earthMat=new THREE.MeshPhongMaterial({map:earthTex, bumpMap:bumpMap, bumpScale:0.05, specularMap:specMap, specular:new THREE.Color('grey'), shininess:15});
+  const earth=new THREE.Mesh(earthGeo,earthMat);
+  scene.add(earth);
+
+  const cloudGeo=new THREE.SphereGeometry(1.01,64,64);
+  const cloudMat=new THREE.MeshPhongMaterial({map:cloudTex, transparent:true, opacity:0.4});
+  const clouds=new THREE.Mesh(cloudGeo,cloudMat);
+  scene.add(clouds);
+
+  scene.add(new THREE.AmbientLight(0x404040, 0.8));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+  sun.position.set(5, 3, 5);
+  scene.add(sun);
+
+  // SCROLL TRIGGERED ROTATION
+  let targetY = 0;
+  let currentY = 0;
+  window.addEventListener('scroll', () => {
+    targetY = window.scrollY * 0.002; // Sensitivity
+  }, {passive: true});
+
+  function animate(){
+    requestAnimationFrame(animate);
+    // Smooth lerp for rotation
+    currentY += (targetY - currentY) * 0.05;
+    earth.rotation.y = currentY;
+    clouds.rotation.y = currentY * 1.1; // Clouds move slightly faster for depth
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+
+/* --- INTERACTION & REVEALS --- */
+const obs=new IntersectionObserver(e=>{e.forEach(en=>{if(en.isIntersecting)en.target.classList.add('visible')})},{threshold:.1});
+document.querySelectorAll('.reveal,.project-row,.step').forEach(el=>obs.observe(el));
+
+// Card Tilt
+document.querySelectorAll('.service-card').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    const dx=(e.clientX-r.left-r.width/2)/(r.width/2),dy=(e.clientY-r.top-r.height/2)/(r.height/2);
+    card.querySelector('.card-inner').style.transform=`rotateY(${180+dx*10}deg) rotateX(${-dy*10}deg)`;
+  });
+  card.addEventListener('mouseleave',()=>{card.querySelector('.card-inner').style.transform=''});
+});
+
+// Section Title Tilt
+window.addEventListener('scroll',()=>{
+  document.querySelectorAll('.section-title').forEach(el=>{
+    const d=(el.getBoundingClientRect().top+el.offsetHeight/2-innerHeight/2)/innerHeight;
+    el.style.transform=`rotateX(${d*5}deg)`;
+  });
+});
+</script>
+</body>
+</html>
